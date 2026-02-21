@@ -1,6 +1,6 @@
 import Navbar from "../components/Navbar";
 
-export default function Dashboard({ user }) {
+export default function Dashboard({ user, onCreateProject }) {
   const username = user.email.split("@")[0];
 
   // Temporary mock projects
@@ -42,11 +42,12 @@ export default function Dashboard({ user }) {
 
           {/* Create New Project */}
           <div
-            className="flex flex-col items-center justify-center
-                       bg-gray-900 border border-dashed border-gray-700
-                       rounded-xl p-6 hover:border-indigo-500 transition
-                       cursor-pointer"
-          >
+  onClick={onCreateProject}
+  className="flex flex-col items-center justify-center
+             bg-gray-900 border border-dashed border-gray-700
+             rounded-xl p-6 hover:border-indigo-500 transition
+             cursor-pointer"
+>
             <span className="text-3xl mb-2">➕</span>
             <p className="text-gray-400 font-medium">
               Create New Project
