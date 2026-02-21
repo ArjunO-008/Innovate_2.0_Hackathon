@@ -2,12 +2,12 @@ import AuthCard from "../components/AuthCard";
 
 export default function Hero() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
+    <div className="min-h-screen bg-white text-black">
       
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-gray-800">
-        <h1 className="text-2xl font-bold tracking-wide">
-          PAIN
+        <h1 className="text-2xl font-bold tracking-wide text-orange-500">
+          ProMag
         </h1>
       </nav>
 
@@ -16,12 +16,12 @@ export default function Hero() {
         
         {/* Left Section */}
         <div className="md:w-1/2 space-y-6">
-          <h2 className="text-4xl md:text-5xl font-extrabold leading-tight">
+          <h2 className="text-4xl md:text-5xl font-extrabold leading-tight text-orange-500">
             Don’t just <br />
-            manage tasks <span className="text-indigo-500">Deliver outcomes.</span>
+            manage tasks <span className="text-black">Deliver outcomes.</span>
           </h2>
 
-          <p className="text-gray-300 text-lg leading-relaxed">
+          <p className="text-gray-800 text-lg leading-relaxed">
             An AI-powered product and project assistant that plans, automates,
             and monitors the entire product lifecycle — from idea to deployment.
           </p>

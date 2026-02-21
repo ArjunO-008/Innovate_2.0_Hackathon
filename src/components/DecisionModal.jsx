@@ -5,10 +5,12 @@ export default function DecisionModal({
   open,
   loading,
   aiOutput,
-  onProceed,
   onReject,
+  onClose, // optional callback to parent
 }) {
   const [openSections, setOpenSections] = useState({});
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
 
   if (!open) return null;
 
@@ -19,6 +21,36 @@ export default function DecisionModal({
     }));
   };
 
+  const handleProceed = async () => {
+    setConfirming(true);
+    setConfirmError("");
+
+    try {
+      const res = await fetch(
+        "https://ieee.anjoostech.cfd/webhook-test/create/selection",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ confirmation: true }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Confirmation failed");
+      }
+
+      // success → close modal
+      if (onClose) onClose();
+    } catch (err) {
+      setConfirmError(err.message);
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  /* ---------- Loading State ---------- */
   if (loading) {
     return (
       <ModalShell>
@@ -40,11 +72,9 @@ export default function DecisionModal({
 
       {/* Content */}
       <div className="p-6 overflow-y-auto space-y-4 text-sm text-gray-300">
-
         {Object.entries(aiOutput).map(([key, value]) => {
           const title = prettify(key);
 
-          // 🔹 Case 1: simple string
           if (typeof value === "string") {
             return (
               <Section key={key} title={title}>
@@ -53,7 +83,6 @@ export default function DecisionModal({
             );
           }
 
-          // 🔹 Case 2: object (nested strings)
           if (typeof value === "object" && value !== null) {
             return (
               <Collapsible
@@ -86,25 +115,36 @@ export default function DecisionModal({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-800 flex justify-end gap-4">
-        <button
-          onClick={onReject}
-          className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700"
-        >
-          Reject
-        </button>
-        <button
-          onClick={onProceed}
-          className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700"
-        >
-          Proceed
-        </button>
+      <div className="p-4 border-t border-gray-800 flex justify-between items-center">
+        {confirmError && (
+          <span className="text-red-500 text-sm">
+            {confirmError}
+          </span>
+        )}
+
+        <div className="flex gap-4 ml-auto">
+          <button
+            onClick={onReject}
+            disabled={confirming}
+            className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-50"
+          >
+            Reject
+          </button>
+
+          <button
+            onClick={handleProceed}
+            disabled={confirming}
+            className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {confirming ? "Confirming..." : "Proceed"}
+          </button>
+        </div>
       </div>
     </ModalShell>
   );
 }
 
-/* ---------- Helpers ---------- */
+/* ---------- Helper Components ---------- */
 
 function ModalShell({ children }) {
   return (
