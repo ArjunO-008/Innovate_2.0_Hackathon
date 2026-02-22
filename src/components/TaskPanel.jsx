@@ -38,6 +38,7 @@ const INIT_KEY = (name) => `task_initialized_${name}`;
 export default function TaskPanel({ projectName, isNewProject = false }) {
   const [tasks, setTasks]               = useState([]);
   const [loading, setLoading]           = useState(true);
+  const [initError, setInitError]       = useState("");   // error from initial /task call
   const [activeFilter, setActiveFilter] = useState("all");
   const [expanded, setExpanded]         = useState({});
 
@@ -48,7 +49,7 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState("");
 
-  /* ── Display fetch (subsequent loads) ── */
+  /* ── Display fetch — called after initial /task succeeds, and on refresh ── */
   const fetchTasks = async () => {
     try {
       const res  = await apiFetch(`task/display?projectName=${encodeURIComponent(projectName)}`);
@@ -77,19 +78,25 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
     const alreadyInitialized = sessionStorage.getItem(INIT_KEY(projectName));
 
     if (!alreadyInitialized && isNewProject) {
-      // First time: call /task once to trigger generation, then switch to /task/display
+      // New project: MUST wait for /task to succeed before calling /task/display
       (async () => {
+        setInitError("");
         try {
-          await apiFetch(`task?projectName=${encodeURIComponent(projectName)}`);
+          const res = await apiFetch(`task?projectName=${encodeURIComponent(projectName)}`);
+          if (!res.ok) throw new Error(`Task creation failed (${res.status})`);
+          // Mark as initialized so refreshes/revisits skip this step
           sessionStorage.setItem(INIT_KEY(projectName), "true");
+          // Only now is it safe to load the display view
+          await fetchTasks();
         } catch (err) {
-          console.error("Failed to initialize tasks:", err);
-        } finally {
-          fetchTasks();
+          console.error("Failed to create tasks:", err);
+          setInitError(err.message);
+          setLoading(false);
+          // Do NOT call fetchTasks — creation failed so there's nothing to display
         }
       })();
     } else {
-      // Already initialized or existing project: just display
+      // Returning visit or already initialized — go straight to display
       fetchTasks();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,7 +272,43 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
           <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-          <p className="text-sm">Fetching tasks…</p>
+          <p className="text-sm font-medium text-gray-500">
+            {sessionStorage.getItem(INIT_KEY(projectName))
+              ? "Loading tasks…"
+              : "Generating tasks, please wait…"}
+          </p>
+          {!sessionStorage.getItem(INIT_KEY(projectName)) && (
+            <p className="text-xs text-gray-400">This may take a moment</p>
+          )}
+        </div>
+      ) : initError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-400 text-2xl">✕</div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-gray-700 mb-1">Task generation failed</p>
+            <p className="text-xs text-gray-400 max-w-xs">{initError}</p>
+          </div>
+          <button
+            onClick={() => {
+              setLoading(true);
+              setInitError("");
+              sessionStorage.removeItem(INIT_KEY(projectName));
+              // Retry /task
+              apiFetch(`task?projectName=${encodeURIComponent(projectName)}`)
+                .then((res) => {
+                  if (!res.ok) throw new Error(`Task creation failed (${res.status})`);
+                  sessionStorage.setItem(INIT_KEY(projectName), "true");
+                  return fetchTasks();
+                })
+                .catch((err) => {
+                  setInitError(err.message);
+                  setLoading(false);
+                });
+            }}
+            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 shadow-md shadow-orange-200 transition"
+          >
+            ↻ Retry
+          </button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
