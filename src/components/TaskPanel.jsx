@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../services/apiFetch";
 
 const PRIORITY_STYLES = {
   High:   { badge: "bg-red-50 text-red-600 border border-red-200", dot: "bg-red-500" },
@@ -47,9 +48,7 @@ export default function TaskPanel({ projectName }) {
   /* ── Fetch ── */
   const fetchTasks = async () => {
     try {
-      const res  = await fetch(
-        `https://ieee.anjoostech.cfd/webhook-test/task?projectName=${encodeURIComponent(projectName)}`
-      );
+      const res  = await apiFetch(`task?projectName=${encodeURIComponent(projectName)}`);
       const data = await res.json();
 
       let taskArray = [];
@@ -72,8 +71,6 @@ export default function TaskPanel({ projectName }) {
 
   useEffect(() => {
     fetchTasks();
-    const interval = setInterval(fetchTasks, 4000);
-    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectName]);
 
@@ -136,9 +133,22 @@ export default function TaskPanel({ projectName }) {
         ? formData.Dependencies.split(",").map((d) => d.trim()).filter(Boolean)
         : [],
       projectName,
+      action: editingTask ? "edit" : "add",
+      ...(editingTask ? { taskId: editingTask.id } : {}),
     };
 
+    const endpoint = editingTask ? "task/update" : "task/create";
+
     try {
+      const res = await apiFetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to save task. Please try again.");
+
+      // Optimistically update local state, then re-fetch for server truth
       if (editingTask) {
         setTasks((prev) =>
           prev.map((t) =>
@@ -149,7 +159,9 @@ export default function TaskPanel({ projectName }) {
         const newId = `task${Date.now()}`;
         setTasks((prev) => [...prev, { id: newId, ...payload }]);
       }
+
       setModalOpen(false);
+      fetchTasks();
     } catch (err) {
       setSaveError(err.message);
     } finally {
@@ -158,8 +170,22 @@ export default function TaskPanel({ projectName }) {
   };
 
   /* ── Delete ── */
-  const handleDelete = (taskId) => {
+  const handleDelete = async (taskId) => {
+    // Optimistically remove from UI
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    try {
+      const res = await apiFetch("task/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, projectName }),
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      fetchTasks();
+    } catch (err) {
+      console.error("[handleDelete]", err.message);
+      // Re-fetch to restore state if delete failed on server
+      fetchTasks();
+    }
   };
 
   const setField = (key, val) =>
@@ -172,10 +198,14 @@ export default function TaskPanel({ projectName }) {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Tasks</h2>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-400 flex items-center gap-2">
-            Auto-refreshing
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse inline-block" />
-          </span>
+          <button
+            onClick={fetchTasks}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-500 hover:text-orange-500 hover:border-orange-300 transition disabled:opacity-40"
+          >
+            <span className={`text-base ${loading ? "animate-spin inline-block" : ""}`}>↻</span>
+            Refresh
+          </button>
           <button
             onClick={openAdd}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 shadow-md shadow-orange-200 transition-all"

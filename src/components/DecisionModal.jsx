@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiFetch } from "../services/apiFetch";
 import { useNavigate } from "react-router-dom";
 import Spinner from "./Spinner";
 
@@ -23,14 +24,11 @@ export default function DecisionModal({
     setConfirming(true);
     setConfirmError("");
     try {
-      const res = await fetch(
-        "https://ieee.anjoostech.cfd/webhook-test/create/selection",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ confirmation: true, projectName }),
-        }
-      );
+      const res = await apiFetch("create/selection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation: true, projectName }),
+      });
       if (!res.ok) throw new Error("Confirmation failed");
 
       // Navigate to the project dashboard via router

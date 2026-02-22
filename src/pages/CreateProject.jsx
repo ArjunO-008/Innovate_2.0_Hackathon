@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiFetch } from "../services/apiFetch";
 import { useNavigate, Link } from "react-router-dom";
 import DecisionModal from "../components/DecisionModal";
 
@@ -66,9 +67,7 @@ export default function CreateProject() {
     setAiLoading(true);
 
     try {
-      const response = await fetch(
-        "https://ieee.anjoostech.cfd/webhook-test/create",
-        {
+      const response = await apiFetch("create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -79,8 +78,7 @@ export default function CreateProject() {
             targetAudience:   formData.targetAudience,
             extraAddOns:      formData.addons,
           }),
-        }
-      );
+        });
 
       if (!response.ok) throw new Error("Failed to analyze project");
 
