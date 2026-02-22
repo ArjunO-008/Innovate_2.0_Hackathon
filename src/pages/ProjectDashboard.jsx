@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import TaskPanel from "../components/TaskPanel";
 import MilestonesPanel from "../components/MilestonesPanel";
+import AIReportsPanel from "../components/AIReportsPanel";
 import MembersPanel from "../components/MembersPanel";
 import LogsPanel from "../components/LogsPanel";
 
@@ -11,7 +12,8 @@ const tabs = [
   { key: "members",  label: "Members",  icon: "◉" },
   { key: "logs",     label: "Logs",     icon: "≡" },
   { key: "milestones", label: "Milestones", icon: "◆" },
-  { key: "results",  label: "Results",  icon: "◎" },
+  { key: "reports",  label: "AI Reports", icon: "◎" },
+  { key: "results",  label: "Results",   icon: "◈" },
 ];
 
 export default function ProjectDashboard() {
@@ -96,6 +98,7 @@ export default function ProjectDashboard() {
         {activeTab === "members"  && <MembersPanel />}
         {activeTab === "logs"     && <LogsPanel />}
         {activeTab === "milestones" && <MilestonesPanel />}
+        {activeTab === "reports"    && <AIReportsPanel />}
         {activeTab === "results"  && <ResultsPanel />}
       </main>
     </div>
