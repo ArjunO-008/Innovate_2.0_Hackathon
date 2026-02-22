@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import TaskPanel from "../components/TaskPanel";
+import MilestonesPanel from "../components/MilestonesPanel";
 import MembersPanel from "../components/MembersPanel";
 import LogsPanel from "../components/LogsPanel";
 
@@ -9,6 +10,7 @@ const tabs = [
   { key: "tasks",    label: "Tasks",    icon: "⟳" },
   { key: "members",  label: "Members",  icon: "◉" },
   { key: "logs",     label: "Logs",     icon: "≡" },
+  { key: "milestones", label: "Milestones", icon: "◆" },
   { key: "results",  label: "Results",  icon: "◎" },
 ];
 
@@ -93,6 +95,7 @@ export default function ProjectDashboard() {
         {activeTab === "tasks"    && <TaskPanel projectName={projectName} initialTasks={initialTasks} />}
         {activeTab === "members"  && <MembersPanel />}
         {activeTab === "logs"     && <LogsPanel />}
+        {activeTab === "milestones" && <MilestonesPanel />}
         {activeTab === "results"  && <ResultsPanel />}
       </main>
     </div>
