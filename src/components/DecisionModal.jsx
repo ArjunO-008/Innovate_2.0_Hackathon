@@ -6,7 +6,7 @@ export default function DecisionModal({
   loading,
   aiOutput,
   onReject,
-  onClose, // optional callback to parent
+  onClose,
 }) {
   const [openSections, setOpenSections] = useState({});
   const [confirming, setConfirming] = useState(false);
@@ -30,18 +30,13 @@ export default function DecisionModal({
         "https://ieee.anjoostech.cfd/webhook-test/create/selection",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ confirmation: true }),
         }
       );
 
-      if (!res.ok) {
-        throw new Error("Confirmation failed");
-      }
+      if (!res.ok) throw new Error("Confirmation failed");
 
-      // success → close modal
       if (onClose) onClose();
     } catch (err) {
       setConfirmError(err.message);
@@ -50,7 +45,7 @@ export default function DecisionModal({
     }
   };
 
-  /* ---------- Loading State ---------- */
+  /* ---------- Loading ---------- */
   if (loading) {
     return (
       <ModalShell>
@@ -64,14 +59,14 @@ export default function DecisionModal({
   return (
     <ModalShell>
       {/* Header */}
-      <div className="p-6 border-b border-gray-800">
-        <h2 className="text-2xl font-semibold text-center">
+      <div className="p-6 border-b border-gray-200">
+        <h2 className="text-2xl font-bold text-center text-orange-500">
           Project Evaluation
         </h2>
       </div>
 
       {/* Content */}
-      <div className="p-6 overflow-y-auto space-y-4 text-sm text-gray-300">
+      <div className="p-6 overflow-y-auto space-y-4 text-sm text-gray-700">
         {Object.entries(aiOutput).map(([key, value]) => {
           const title = prettify(key);
 
@@ -91,21 +86,19 @@ export default function DecisionModal({
                 open={openSections[key]}
                 onToggle={() => toggle(key)}
               >
-                <div className="space-y-3">
-                  {Object.entries(value).map(([subKey, subValue]) => (
-                    <div
-                      key={subKey}
-                      className="border border-gray-800 rounded p-4"
-                    >
-                      <h4 className="text-white font-medium mb-2">
-                        {prettify(subKey)}
-                      </h4>
-                      <p className="whitespace-pre-wrap">
-                        {String(subValue)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                {Object.entries(value).map(([subKey, subValue]) => (
+                  <div
+                    key={subKey}
+                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <h4 className="font-semibold text-orange-500 mb-2">
+                      {prettify(subKey)}
+                    </h4>
+                    <p className="whitespace-pre-wrap text-gray-700">
+                      {String(subValue)}
+                    </p>
+                  </div>
+                ))}
               </Collapsible>
             );
           }
@@ -115,7 +108,7 @@ export default function DecisionModal({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-800 flex justify-between items-center">
+      <div className="p-4 border-t border-gray-200 flex items-center justify-between">
         {confirmError && (
           <span className="text-red-500 text-sm">
             {confirmError}
@@ -126,7 +119,12 @@ export default function DecisionModal({
           <button
             onClick={onReject}
             disabled={confirming}
-            className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-50"
+            className="
+              px-4 py-2 rounded-lg
+              bg-gray-100 text-gray-700
+              hover:bg-gray-200
+              disabled:opacity-50
+            "
           >
             Reject
           </button>
@@ -134,7 +132,13 @@ export default function DecisionModal({
           <button
             onClick={handleProceed}
             disabled={confirming}
-            className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+            className="
+              px-4 py-2 rounded-lg
+              bg-orange-500 text-white font-semibold
+              hover:bg-orange-600
+              shadow-md hover:shadow-lg
+              disabled:opacity-50
+            "
           >
             {confirming ? "Confirming..." : "Proceed"}
           </button>
@@ -148,8 +152,8 @@ export default function DecisionModal({
 
 function ModalShell({ children }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-6">
-      <div className="bg-gray-900 border border-gray-800 rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-6">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-[0_30px_80px_rgba(0,0,0,0.25)]">
         {children}
       </div>
     </div>
@@ -158,11 +162,11 @@ function ModalShell({ children }) {
 
 function Section({ title, children }) {
   return (
-    <div className="border border-gray-800 rounded p-4">
-      <h3 className="text-white font-semibold mb-2">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <h3 className="font-semibold text-orange-500 mb-2">
         {title}
       </h3>
-      <p className="whitespace-pre-wrap leading-relaxed">
+      <p className="whitespace-pre-wrap leading-relaxed text-gray-700">
         {children}
       </p>
     </div>
@@ -171,18 +175,21 @@ function Section({ title, children }) {
 
 function Collapsible({ title, open, onToggle, children }) {
   return (
-    <div className="border border-gray-800 rounded">
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       <button
         onClick={onToggle}
-        className="w-full flex justify-between items-center p-4 hover:bg-gray-800"
+        className="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition"
       >
-        <span className="font-medium text-white">
+        <span className="font-medium text-orange-500">
           {title}
         </span>
-        <span>{open ? "−" : "+"}</span>
+        <span className="text-orange-500 text-lg">
+          {open ? "−" : "+"}
+        </span>
       </button>
+
       {open && (
-        <div className="p-4 space-y-3">
+        <div className="p-4 space-y-3 bg-gray-50">
           {children}
         </div>
       )}
