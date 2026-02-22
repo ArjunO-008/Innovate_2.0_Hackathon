@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import TaskPanel from "../components/TaskPanel";
 import MembersPanel from "../components/MembersPanel";
+import LogsPanel from "../components/LogsPanel";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: "◈" },
@@ -17,7 +18,7 @@ export default function ProjectDashboard() {
   const navigate    = useNavigate();
   const location    = useLocation();
   // Set to true when navigating here right after project creation
-  const isNewProject = location.state?.isNewProject ?? false;
+  const initialTasks = location.state?.tasks ?? null;
 
   // Derive active tab from URL hash for deep-linkability, fallback to "tasks"
   const hash       = window.location.hash.replace("#", "") || "tasks";
@@ -89,7 +90,7 @@ export default function ProjectDashboard() {
       {/* ── Main Content ── */}
       <main className="flex-1 overflow-y-auto px-8 py-8">
         {activeTab === "overview" && <OverviewPanel projectName={projectName} />}
-        {activeTab === "tasks"    && <TaskPanel projectName={projectName} isNewProject={isNewProject} />}
+        {activeTab === "tasks"    && <TaskPanel projectName={projectName} initialTasks={initialTasks} />}
         {activeTab === "members"  && <MembersPanel />}
         {activeTab === "logs"     && <LogsPanel />}
         {activeTab === "results"  && <ResultsPanel />}
@@ -490,20 +491,6 @@ function CalendarCard({ calendar }) {
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function LogsPanel() {
-  return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Logs</h1>
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-3">
-          <span className="text-4xl">≡</span>
-          <p className="text-sm">Logs will appear here as backend tasks run.</p>
-        </div>
-      </div>
     </div>
   );
 }

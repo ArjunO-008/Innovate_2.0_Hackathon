@@ -14,6 +14,7 @@ export default function DecisionModal({
   const [openSections, setOpenSections] = useState({});
   const [confirming, setConfirming]     = useState(false);
   const [confirmError, setConfirmError] = useState("");
+  const [confirmStatus, setConfirmStatus] = useState("");
 
   if (!open) return null;
 
@@ -24,19 +25,31 @@ export default function DecisionModal({
     setConfirming(true);
     setConfirmError("");
     try {
-      const res = await apiFetch("create/selection", {
+      // Step 1: create/selection — backend creates space and first task
+      const selRes = await apiFetch("create/selection", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmation: true, projectName }),
       });
-      if (!res.ok) throw new Error("Confirmation failed");
+      if (!selRes.ok) throw new Error("Confirmation failed");
+      // Backend responds with { SpaceCreate, NewTask } — it's now ready
 
-      // Navigate to the project dashboard via router
-      navigate(`/project/${encodeURIComponent(projectName)}`, { state: { isNewProject: true } });
+      // Step 2: wait for backend to finish processing, then call /task
+      setConfirmStatus("Generating tasks…");
+      await new Promise((r) => setTimeout(r, 10000));
+      const taskRes = await apiFetch("task");
+      if (!taskRes.ok) throw new Error("Task generation failed");
+      const taskData = await taskRes.json();
+
+      // Step 3: pass tasks directly via navigation state — no storage needed
+      navigate(`/project/${encodeURIComponent(projectName)}#tasks`, {
+        state: { tasks: taskData },
+      });
     } catch (err) {
       setConfirmError(err.message);
     } finally {
       setConfirming(false);
+      setConfirmStatus("");
     }
   };
 
@@ -102,7 +115,6 @@ export default function DecisionModal({
         {confirmError && (
           <span className="text-red-500 text-sm">{confirmError}</span>
         )}
-
         <div className="flex gap-4 ml-auto">
           <button
             onClick={onReject}
@@ -114,14 +126,9 @@ export default function DecisionModal({
           <button
             onClick={handleProceed}
             disabled={confirming}
-            className="
-              px-4 py-2 rounded-lg
-              bg-orange-500 text-white font-semibold
-              hover:bg-orange-600 shadow-md hover:shadow-lg
-              disabled:opacity-50
-            "
+            className="px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 shadow-md hover:shadow-lg disabled:opacity-50"
           >
-            {confirming ? "Confirming..." : "Proceed"}
+            {confirmStatus || (confirming ? "Confirming..." : "Proceed")}
           </button>
         </div>
       </div>

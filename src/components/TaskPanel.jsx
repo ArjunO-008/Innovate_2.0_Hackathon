@@ -32,15 +32,24 @@ const EMPTY_FORM = {
   status: "queued",
 };
 
-// Key used to track whether /task has been called for this project
-const INIT_KEY = (name) => `task_initialized_${name}`;
+/* ── Normalise any response shape into a flat task array ── */
+function parseTasks(data) {
+  if (data && !Array.isArray(data) && typeof data === "object") {
+    return Object.entries(data).map(([key, val]) => ({ id: key, ...val }));
+  }
+  if (Array.isArray(data) && data[0]?.output && typeof data[0].output === "object") {
+    return Object.entries(data[0].output).map(([key, val]) => ({ id: key, ...val }));
+  }
+  if (Array.isArray(data)) return data;
+  return [];
+}
 
-export default function TaskPanel({ projectName, isNewProject = false }) {
-  const [tasks, setTasks]               = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [initError, setInitError]       = useState("");   // error from initial /task call
+export default function TaskPanel({ projectName, initialTasks = null }) {
+  const [tasks, setTasks]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [expanded, setExpanded]         = useState({});
+  const [expanded, setExpanded]     = useState({});
 
   // Modal state
   const [modalOpen, setModalOpen]     = useState(false);
@@ -49,58 +58,50 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState("");
 
-  /* ── Display fetch — called after initial /task succeeds, and on refresh ── */
-  const fetchTasks = async () => {
-    try {
-      const res  = await apiFetch(`task/display?projectName=${encodeURIComponent(projectName)}`);
-      const data = await res.json();
-
-      let taskArray = [];
-      if (Array.isArray(data) && data[0]?.output) {
-        taskArray = Object.entries(data[0].output).map(([key, val]) => ({
-          id: key,
-          ...val,
-        }));
-      } else if (Array.isArray(data)) {
-        taskArray = data;
-      }
-
-      setTasks(taskArray);
+  /* ── On mount: use tasks passed from DecisionModal, or fetch via /task/display ── */
+  useEffect(() => {
+    if (initialTasks) {
+      // Tasks came directly from /task call in DecisionModal — render immediately
+      setTasks(parseTasks(initialTasks));
       setLoading(false);
+      return;
+    }
+
+    // Returning visit — fetch from /task/display
+    const loadTasks = async () => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const res = await apiFetch("task/display");
+        if (!res.ok) throw new Error(`Failed to load tasks (${res.status})`);
+        const data = await res.json();
+        setTasks(parseTasks(data));
+      } catch (err) {
+        setLoadError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTasks();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectName]);
+
+  /* ── Refresh button: always calls /task/display ── */
+  const handleRefresh = async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const res = await apiFetch(`task/display`);
+      if (!res.ok) throw new Error(`Server error (${res.status})`);
+      const data = await res.json();
+      setTasks(parseTasks(data));
     } catch (err) {
-      console.error("Failed to fetch tasks:", err);
+      setLoadError(err.message);
+    } finally {
       setLoading(false);
     }
   };
-
-  /* ── Initial load ── */
-  useEffect(() => {
-    const alreadyInitialized = sessionStorage.getItem(INIT_KEY(projectName));
-
-    if (!alreadyInitialized && isNewProject) {
-      // New project: MUST wait for /task to succeed before calling /task/display
-      (async () => {
-        setInitError("");
-        try {
-          const res = await apiFetch(`task?projectName=${encodeURIComponent(projectName)}`);
-          if (!res.ok) throw new Error(`Task creation failed (${res.status})`);
-          // Mark as initialized so refreshes/revisits skip this step
-          sessionStorage.setItem(INIT_KEY(projectName), "true");
-          // Only now is it safe to load the display view
-          await fetchTasks();
-        } catch (err) {
-          console.error("Failed to create tasks:", err);
-          setInitError(err.message);
-          setLoading(false);
-          // Do NOT call fetchTasks — creation failed so there's nothing to display
-        }
-      })();
-    } else {
-      // Returning visit or already initialized — go straight to display
-      fetchTasks();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectName]);
 
   /* ── Filtering ── */
   const filtered = tasks.filter((t) => {
@@ -119,7 +120,7 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
   const toggleExpand = (id) =>
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  /* ── Open Add modal ── */
+  /* ── Add modal ── */
   const openAdd = () => {
     setEditingTask(null);
     setFormData(EMPTY_FORM);
@@ -127,7 +128,7 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
     setModalOpen(true);
   };
 
-  /* ── Open Edit modal ── */
+  /* ── Edit modal ── */
   const openEdit = (task) => {
     setEditingTask(task);
     setFormData({
@@ -173,23 +174,18 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       if (!res.ok) throw new Error("Failed to save task. Please try again.");
 
-      // Optimistically update local state, then re-fetch for server truth
+      // Optimistically update UI
       if (editingTask) {
         setTasks((prev) =>
-          prev.map((t) =>
-            t.id === editingTask.id ? { ...t, ...payload } : t
-          )
+          prev.map((t) => t.id === editingTask.id ? { ...t, ...payload } : t)
         );
       } else {
-        const newId = `task${Date.now()}`;
-        setTasks((prev) => [...prev, { id: newId, ...payload }]);
+        setTasks((prev) => [...prev, { id: `task${Date.now()}`, ...payload }]);
       }
-
       setModalOpen(false);
-      fetchTasks();
+      handleRefresh();
     } catch (err) {
       setSaveError(err.message);
     } finally {
@@ -199,7 +195,6 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
 
   /* ── Delete ── */
   const handleDelete = async (taskId) => {
-    // Optimistically remove from UI
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     try {
       const res = await apiFetch("task/delete", {
@@ -208,16 +203,46 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
         body: JSON.stringify({ taskId, projectName }),
       });
       if (!res.ok) throw new Error("Delete failed");
-      fetchTasks();
+      handleRefresh();
     } catch (err) {
       console.error("[handleDelete]", err.message);
-      // Re-fetch to restore state if delete failed on server
-      fetchTasks();
+      handleRefresh();
     }
   };
 
   const setField = (key, val) =>
     setFormData((prev) => ({ ...prev, [key]: val }));
+
+  /* ── Loading state ── */
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-32 gap-5 text-gray-400">
+        <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+        <div className="text-center">
+          <p className="text-sm font-semibold text-gray-600">Loading tasks…</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Error state ── */
+  if (loadError) {
+    return (
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-24 gap-4">
+        <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-400 text-2xl">✕</div>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Failed to load tasks</p>
+          <p className="text-xs text-gray-400 max-w-xs">{loadError}</p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          className="flex items-center gap-2 px-5 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 shadow-md shadow-orange-200 transition"
+        >
+          ↻ Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -227,11 +252,10 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
         <h2 className="text-2xl font-bold text-gray-800">Tasks</h2>
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchTasks}
-            disabled={loading}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-500 hover:text-orange-500 hover:border-orange-300 transition disabled:opacity-40"
+            onClick={handleRefresh}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-500 hover:text-orange-500 hover:border-orange-300 transition"
           >
-            <span className={`text-base ${loading ? "animate-spin inline-block" : ""}`}>↻</span>
+            <span className="text-base">↻</span>
             Refresh
           </button>
           <button
@@ -269,57 +293,17 @@ export default function TaskPanel({ projectName, isNewProject = false }) {
       </div>
 
       {/* Task List */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
-          <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-          <p className="text-sm font-medium text-gray-500">
-            {sessionStorage.getItem(INIT_KEY(projectName))
-              ? "Loading tasks…"
-              : "Generating tasks, please wait…"}
-          </p>
-          {!sessionStorage.getItem(INIT_KEY(projectName)) && (
-            <p className="text-xs text-gray-400">This may take a moment</p>
-          )}
-        </div>
-      ) : initError ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-400 text-2xl">✕</div>
-          <div className="text-center">
-            <p className="text-sm font-semibold text-gray-700 mb-1">Task generation failed</p>
-            <p className="text-xs text-gray-400 max-w-xs">{initError}</p>
-          </div>
-          <button
-            onClick={() => {
-              setLoading(true);
-              setInitError("");
-              sessionStorage.removeItem(INIT_KEY(projectName));
-              // Retry /task
-              apiFetch(`task?projectName=${encodeURIComponent(projectName)}`)
-                .then((res) => {
-                  if (!res.ok) throw new Error(`Task creation failed (${res.status})`);
-                  sessionStorage.setItem(INIT_KEY(projectName), "true");
-                  return fetchTasks();
-                })
-                .catch((err) => {
-                  setInitError(err.message);
-                  setLoading(false);
-                });
-            }}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 shadow-md shadow-orange-200 transition"
-          >
-            ↻ Retry
-          </button>
-        </div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
           <span className="text-4xl">○</span>
-          <p className="text-sm">No tasks found.</p>
-          <button
-            onClick={openAdd}
-            className="mt-2 text-sm text-orange-500 hover:underline font-medium"
-          >
-            + Add your first task
-          </button>
+          <p className="text-sm">
+            {tasks.length === 0 ? "No tasks yet." : "No tasks match this filter."}
+          </p>
+          {tasks.length === 0 && (
+            <button onClick={openAdd} className="mt-2 text-sm text-orange-500 hover:underline font-medium">
+              + Add a task manually
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -391,7 +375,6 @@ function TaskCard({ task, expanded, onToggle, onEdit, onDelete }) {
                 {status.icon} {task.status ?? "queued"}
               </span>
 
-              {/* Edit / Delete — appear on card hover */}
               <button
                 onClick={onEdit}
                 className="opacity-0 group-hover:opacity-100 transition-opacity text-xs px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-orange-600 font-medium flex items-center gap-1"
@@ -472,7 +455,6 @@ function TaskModal({ isEdit, formData, setField, saving, saveError, onSave, onCl
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
 
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
           <div>
             <h3 className="text-lg font-bold text-gray-800">
@@ -490,7 +472,6 @@ function TaskModal({ isEdit, formData, setField, saving, saveError, onSave, onCl
           </button>
         </div>
 
-        {/* Form */}
         <div className="overflow-y-auto px-6 py-5 space-y-4">
 
           <Field label="Task Name *">
@@ -570,7 +551,6 @@ function TaskModal({ isEdit, formData, setField, saving, saveError, onSave, onCl
             />
           </Field>
 
-          {/* Risk toggle */}
           <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-200 bg-gray-50">
             <div>
               <p className="text-sm font-medium text-gray-700">Mark as At Risk</p>
@@ -593,7 +573,6 @@ function TaskModal({ isEdit, formData, setField, saving, saveError, onSave, onCl
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
@@ -614,7 +593,6 @@ function TaskModal({ isEdit, formData, setField, saving, saveError, onSave, onCl
   );
 }
 
-/* ── Field wrapper ── */
 function Field({ label, hint, children }) {
   return (
     <div className="flex flex-col gap-1.5">

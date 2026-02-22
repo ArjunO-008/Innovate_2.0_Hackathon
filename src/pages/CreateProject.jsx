@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { apiFetch } from "../services/apiFetch";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import DecisionModal from "../components/DecisionModal";
 
 const steps = [
@@ -30,9 +30,6 @@ const requiredFields = [
 ];
 
 export default function CreateProject() {
-  // eslint-disable-next-line no-unused-vars
-  const navigate = useNavigate();
-
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting]   = useState(false);
   const [submitError, setSubmitError] = useState("");
