@@ -81,7 +81,7 @@ export default function CreateProject() {
       if (!response.ok) throw new Error("Failed to analyze project");
 
       const data   = await response.json();
-      const output = data?.[0]?.output;
+      const output = data;
       if (!output) throw new Error("Invalid AI response format");
 
       setAiResult(output);

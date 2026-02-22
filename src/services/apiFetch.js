@@ -3,9 +3,7 @@
  * If the primary returns a non-ok status or network error,
  * automatically retries with /api/webhook-test/{path}.
  *
- * NOTE: Some endpoints (e.g. /create, /create/selection) only exist
- * under webhook-test — the 500 on primary for those is expected and
- * the fallback handles it transparently.
+ * NOTE: For dev, if webhook fails, webhook-test is used as fallback.
  *
  * @param {string} path     e.g. "task?projectName=foo" or "task/finale"
  * @param {RequestInit} options  standard fetch options (method, headers, body…)
@@ -13,8 +11,8 @@
  * @throws  if both primary and fallback fail
  */
 export async function apiFetch(path, options = {}) {
-  const primary  = `/api/webhook-test/${path}`;
-  const fallback = `/api/webhook/${path}`;
+  const primary  = `/api/webhook/${path}`;
+  const fallback = `/api/webhook-test/${path}`;
 
   let primaryStatus = null;
 
