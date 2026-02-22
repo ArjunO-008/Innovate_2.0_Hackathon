@@ -13,8 +13,8 @@
  * @throws  if both primary and fallback fail
  */
 export async function apiFetch(path, options = {}) {
-  const primary  = `/api/webhook/${path}`;
-  const fallback = `/api/webhook-test/${path}`;
+  const primary  = `/api/webhook-test/${path}`;
+  const fallback = `/api/webhook/${path}`;
 
   let primaryStatus = null;
 

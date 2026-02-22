@@ -525,7 +525,7 @@ function TaskModal({ isEdit, formData, setField, saving, saveError, onSave, onCl
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800 bg-white"
               >
                 <option value="queued">Queued</option>
-                <option value="running">Running</option>
+                <option value="running">InProgress</option>
                 <option value="completed">Completed</option>
                 <option value="failed">Failed</option>
               </select>
