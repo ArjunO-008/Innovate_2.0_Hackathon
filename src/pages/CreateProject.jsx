@@ -30,6 +30,7 @@ const requiredFields = [
 ];
 
 export default function CreateProject() {
+  // eslint-disable-next-line no-unused-vars
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState(0);

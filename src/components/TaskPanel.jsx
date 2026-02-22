@@ -32,7 +32,10 @@ const EMPTY_FORM = {
   status: "queued",
 };
 
-export default function TaskPanel({ projectName }) {
+// Key used to track whether /task has been called for this project
+const INIT_KEY = (name) => `task_initialized_${name}`;
+
+export default function TaskPanel({ projectName, isNewProject = false }) {
   const [tasks, setTasks]               = useState([]);
   const [loading, setLoading]           = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -45,10 +48,10 @@ export default function TaskPanel({ projectName }) {
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState("");
 
-  /* ── Fetch ── */
+  /* ── Display fetch (subsequent loads) ── */
   const fetchTasks = async () => {
     try {
-      const res  = await apiFetch(`task?projectName=${encodeURIComponent(projectName)}`);
+      const res  = await apiFetch(`task/display?projectName=${encodeURIComponent(projectName)}`);
       const data = await res.json();
 
       let taskArray = [];
@@ -69,9 +72,27 @@ export default function TaskPanel({ projectName }) {
     }
   };
 
+  /* ── Initial load ── */
   useEffect(() => {
-    fetchTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const alreadyInitialized = sessionStorage.getItem(INIT_KEY(projectName));
+
+    if (!alreadyInitialized && isNewProject) {
+      // First time: call /task once to trigger generation, then switch to /task/display
+      (async () => {
+        try {
+          await apiFetch(`task?projectName=${encodeURIComponent(projectName)}`);
+          sessionStorage.setItem(INIT_KEY(projectName), "true");
+        } catch (err) {
+          console.error("Failed to initialize tasks:", err);
+        } finally {
+          fetchTasks();
+        }
+      })();
+    } else {
+      // Already initialized or existing project: just display
+      fetchTasks();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectName]);
 
   /* ── Filtering ── */

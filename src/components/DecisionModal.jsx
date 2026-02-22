@@ -32,7 +32,7 @@ export default function DecisionModal({
       if (!res.ok) throw new Error("Confirmation failed");
 
       // Navigate to the project dashboard via router
-      navigate(`/project/${encodeURIComponent(projectName)}`);
+      navigate(`/project/${encodeURIComponent(projectName)}`, { state: { isNewProject: true } });
     } catch (err) {
       setConfirmError(err.message);
     } finally {

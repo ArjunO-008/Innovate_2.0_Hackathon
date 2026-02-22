@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import TaskPanel from "../components/TaskPanel";
 
 const tabs = [
@@ -12,6 +12,9 @@ export default function ProjectDashboard() {
   const { projectName: encoded } = useParams();
   const projectName = decodeURIComponent(encoded ?? "");
   const navigate    = useNavigate();
+  const location    = useLocation();
+  // Set to true when navigating here right after project creation
+  const isNewProject = location.state?.isNewProject ?? false;
 
   // Derive active tab from URL hash for deep-linkability, fallback to "tasks"
   const hash       = window.location.hash.replace("#", "") || "tasks";
@@ -83,7 +86,7 @@ export default function ProjectDashboard() {
       {/* ── Main Content ── */}
       <main className="flex-1 overflow-y-auto px-8 py-8">
         {activeTab === "overview" && <OverviewPanel projectName={projectName} />}
-        {activeTab === "tasks"    && <TaskPanel projectName={projectName} />}
+        {activeTab === "tasks"    && <TaskPanel projectName={projectName} isNewProject={isNewProject} />}
         {activeTab === "logs"     && <LogsPanel />}
         {activeTab === "results"  && <ResultsPanel />}
       </main>
