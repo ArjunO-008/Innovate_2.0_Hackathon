@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import DecisionModal from "../components/DecisionModal";
-import ProjectDashboard from "./ProjectDashboard";
 
 const steps = [
   "Project Name",
@@ -11,38 +11,35 @@ const steps = [
   "Extra Add-ons",
 ];
 
-export default function CreateProject({ onBack }) {
-  const [view, setView] = useState("create"); // create | dashboard
+const INITIAL_FORM = {
+  projectName: "",
+  problemStatement: "",
+  purpose: "",
+  expectedOutput: "",
+  targetAudience: "",
+  addons: "",
+};
+
+const requiredFields = [
+  "projectName",
+  "problemStatement",
+  "purpose",
+  "expectedOutput",
+  "targetAudience",
+];
+
+export default function CreateProject() {
+  const navigate = useNavigate();
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState(null);
+  const [showModal, setShowModal]     = useState(false);
+  const [aiLoading, setAiLoading]     = useState(false);
+  const [aiResult, setAiResult]       = useState(null);
+  const [formData, setFormData]       = useState(INITIAL_FORM);
 
-  const [formData, setFormData] = useState({
-    projectName: "",
-    problemStatement: "",
-    purpose: "",
-    expectedOutput: "",
-    targetAudience: "",
-    addons: "",
-  });
-
-  const requiredFields = [
-    "projectName",
-    "problemStatement",
-    "purpose",
-    "expectedOutput",
-    "targetAudience",
-  ];
-
-  /* ---------- VIEW SWITCH ---------- */
-  if (view === "dashboard") {
-    return <ProjectDashboard projectName={formData.projectName} />;
-  }
-
-  /* ---------- HELPERS ---------- */
+  /* ── Helpers ── */
   const isCurrentStepValid = () => {
     const key = Object.keys(formData)[currentStep];
     if (currentStep < 5) return formData[key].trim() !== "";
@@ -61,7 +58,7 @@ export default function CreateProject({ onBack }) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  /* ---------- SUBMIT ---------- */
+  /* ── Submit ── */
   const handleSubmit = async () => {
     setSubmitting(true);
     setSubmitError("");
@@ -75,19 +72,19 @@ export default function CreateProject({ onBack }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            projectName: formData.projectName,
+            projectName:      formData.projectName,
             problemStatement: formData.problemStatement,
-            purpose: formData.purpose,
-            expectedOutput: formData.expectedOutput,
-            targetAudience: formData.targetAudience,
-            extraAddOns: formData.addons,
+            purpose:          formData.purpose,
+            expectedOutput:   formData.expectedOutput,
+            targetAudience:   formData.targetAudience,
+            extraAddOns:      formData.addons,
           }),
         }
       );
 
       if (!response.ok) throw new Error("Failed to analyze project");
 
-      const data = await response.json();
+      const data   = await response.json();
       const output = data?.[0]?.output;
       if (!output) throw new Error("Invalid AI response format");
 
@@ -101,17 +98,17 @@ export default function CreateProject({ onBack }) {
     }
   };
 
-  /* ---------- UI ---------- */
+  /* ── UI ── */
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 relative">
 
       {/* Back */}
-      <button
-        onClick={onBack}
-        className="absolute top-6 left-6 text-sm text-gray-500 hover:text-orange-500"
+      <Link
+        to="/dashboard"
+        className="absolute top-6 left-6 text-sm text-gray-500 hover:text-orange-500 transition"
       >
         ← Back to Projects
-      </button>
+      </Link>
 
       <div className="w-full max-w-xl">
 
@@ -121,9 +118,7 @@ export default function CreateProject({ onBack }) {
             <div
               key={index}
               className={`h-2 w-10 rounded-full transition ${
-                index <= currentStep
-                  ? "bg-orange-500"
-                  : "bg-gray-300"
+                index <= currentStep ? "bg-orange-500" : "bg-gray-300"
               }`}
             />
           ))}
@@ -136,47 +131,42 @@ export default function CreateProject({ onBack }) {
           </h2>
 
           {currentStep === 0 && (
-            <Input
+            <FormInput
               label="Project Name"
               value={formData.projectName}
               onChange={(v) => handleChange("projectName", v)}
             />
           )}
-
           {currentStep === 1 && (
-            <Textarea
+            <FormTextarea
               label="Problem Statement"
               value={formData.problemStatement}
               onChange={(v) => handleChange("problemStatement", v)}
             />
           )}
-
           {currentStep === 2 && (
-            <Textarea
+            <FormTextarea
               label="Purpose of the Problem"
               value={formData.purpose}
               onChange={(v) => handleChange("purpose", v)}
             />
           )}
-
           {currentStep === 3 && (
-            <Textarea
+            <FormTextarea
               label="Expected Output"
               value={formData.expectedOutput}
               onChange={(v) => handleChange("expectedOutput", v)}
             />
           )}
-
           {currentStep === 4 && (
-            <Textarea
+            <FormTextarea
               label="Target Audience"
               value={formData.targetAudience}
               onChange={(v) => handleChange("targetAudience", v)}
             />
           )}
-
           {currentStep === 5 && (
-            <Textarea
+            <FormTextarea
               label="Extra Add-ons (Optional)"
               value={formData.addons}
               onChange={(v) => handleChange("addons", v)}
@@ -212,9 +202,7 @@ export default function CreateProject({ onBack }) {
                 onClick={handleSubmit}
                 disabled={
                   submitting ||
-                  !requiredFields.every(
-                    (key) => formData[key].trim() !== ""
-                  )
+                  !requiredFields.every((key) => formData[key].trim() !== "")
                 }
                 className="px-6 py-2 rounded-lg bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-40"
               >
@@ -225,25 +213,21 @@ export default function CreateProject({ onBack }) {
         </div>
       </div>
 
-      {/* AI Modal */}
+      {/* AI Modal — navigation to /project/:name handled inside DecisionModal */}
       <DecisionModal
         open={showModal}
         loading={aiLoading}
         aiOutput={aiResult}
         projectName={formData.projectName}
         onReject={() => setShowModal(false)}
-        onClose={() => {
-          setShowModal(false);
-          setView("dashboard"); // ✅ GO TO DASHBOARD
-        }}
       />
     </div>
   );
 }
 
-/* ---------- Inputs ---------- */
+/* ── Input Helpers ── */
 
-function Input({ label, value, onChange }) {
+function FormInput({ label, value, onChange }) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm text-gray-600">{label}</label>
@@ -257,7 +241,7 @@ function Input({ label, value, onChange }) {
   );
 }
 
-function Textarea({ label, value, onChange }) {
+function FormTextarea({ label, value, onChange }) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm text-gray-600">{label}</label>
