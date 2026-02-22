@@ -194,13 +194,13 @@ export default function TaskPanel({ projectName, initialTasks = null }) {
   };
 
   /* ── Delete ── */
-  const handleDelete = async (taskId) => {
+  const handleDelete = async (taskId, taskName) => {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     try {
       const res = await apiFetch("task/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, projectName }),
+        body: JSON.stringify({ taskId, taskName }),
       });
       if (!res.ok) throw new Error("Delete failed");
       handleRefresh();
@@ -314,7 +314,7 @@ export default function TaskPanel({ projectName, initialTasks = null }) {
               expanded={!!expanded[task.id]}
               onToggle={() => toggleExpand(task.id)}
               onEdit={() => openEdit(task)}
-              onDelete={() => handleDelete(task.id)}
+              onDelete={() => handleDelete(task.id, task.taskname ?? task.name)}
             />
           ))}
         </div>
