@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import TaskPanel from "../components/TaskPanel";
+import MembersPanel from "../components/MembersPanel";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: "◈" },
   { key: "tasks",    label: "Tasks",    icon: "⟳" },
+  { key: "members",  label: "Members",  icon: "◉" },
   { key: "logs",     label: "Logs",     icon: "≡" },
   { key: "results",  label: "Results",  icon: "◎" },
 ];
@@ -88,6 +90,7 @@ export default function ProjectDashboard() {
       <main className="flex-1 overflow-y-auto px-8 py-8">
         {activeTab === "overview" && <OverviewPanel projectName={projectName} />}
         {activeTab === "tasks"    && <TaskPanel projectName={projectName} isNewProject={isNewProject} />}
+        {activeTab === "members"  && <MembersPanel />}
         {activeTab === "logs"     && <LogsPanel />}
         {activeTab === "results"  && <ResultsPanel />}
       </main>
