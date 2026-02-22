@@ -532,10 +532,9 @@ function TaskModal({ isEdit, formData, setField, saving, saveError, onSave, onCl
             </Field>
             <Field label="Timeline">
               <input
-                type="text"
+                type="date"
                 value={formData.Timeline}
                 onChange={(e) => setField("Timeline", e.target.value)}
-                placeholder="e.g. By Wednesday"
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 text-gray-800"
               />
             </Field>
