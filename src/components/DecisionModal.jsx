@@ -5,6 +5,7 @@ export default function DecisionModal({
   open,
   loading,
   aiOutput,
+   projectName,  
   onReject,
   onClose,
 }) {
@@ -31,7 +32,7 @@ export default function DecisionModal({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ confirmation: true }),
+          body: JSON.stringify({ confirmation: true,projectName: projectName, }),
         }
       );
 

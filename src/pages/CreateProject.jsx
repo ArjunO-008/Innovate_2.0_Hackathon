@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DecisionModal from "../components/DecisionModal";
+import ProjectDashboard from "./ProjectDashboard";
 
 const steps = [
   "Project Name",
@@ -11,6 +12,7 @@ const steps = [
 ];
 
 export default function CreateProject({ onBack }) {
+  const [view, setView] = useState("create"); // create | dashboard
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -35,6 +37,12 @@ export default function CreateProject({ onBack }) {
     "targetAudience",
   ];
 
+  /* ---------- VIEW SWITCH ---------- */
+  if (view === "dashboard") {
+    return <ProjectDashboard projectName={formData.projectName} />;
+  }
+
+  /* ---------- HELPERS ---------- */
   const isCurrentStepValid = () => {
     const key = Object.keys(formData)[currentStep];
     if (currentStep < 5) return formData[key].trim() !== "";
@@ -45,7 +53,7 @@ export default function CreateProject({ onBack }) {
     if (isCurrentStepValid()) setCurrentStep((p) => p + 1);
   };
 
-  const handleBack = () => {
+  const handleBackStep = () => {
     setCurrentStep((p) => Math.max(p - 1, 0));
   };
 
@@ -53,6 +61,7 @@ export default function CreateProject({ onBack }) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  /* ---------- SUBMIT ---------- */
   const handleSubmit = async () => {
     setSubmitting(true);
     setSubmitError("");
@@ -92,6 +101,7 @@ export default function CreateProject({ onBack }) {
     }
   };
 
+  /* ---------- UI ---------- */
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 relative">
 
@@ -103,7 +113,6 @@ export default function CreateProject({ onBack }) {
         ← Back to Projects
       </button>
 
-      {/* Wrapper */}
       <div className="w-full max-w-xl">
 
         {/* Step Indicator */}
@@ -121,16 +130,7 @@ export default function CreateProject({ onBack }) {
         </div>
 
         {/* Card */}
-        <div
-          className="
-            bg-white
-            rounded-2xl
-            p-8
-            shadow-[0_25px_60px_rgba(0,0,0,0.15)]
-            border border-gray-200
-            animate-[pop_0.25s_ease-out]
-          "
-        >
+        <div className="bg-white rounded-2xl p-8 shadow-[0_25px_60px_rgba(0,0,0,0.15)] border border-gray-200">
           <h2 className="text-2xl font-bold text-center text-orange-500 mb-6">
             {steps[currentStep]}
           </h2>
@@ -192,14 +192,9 @@ export default function CreateProject({ onBack }) {
           {/* Actions */}
           <div className="flex justify-between mt-8">
             <button
-              onClick={handleBack}
+              onClick={handleBackStep}
               disabled={currentStep === 0}
-              className="
-                px-4 py-2 rounded-lg
-                bg-gray-100 text-gray-700
-                hover:bg-gray-200
-                disabled:opacity-40
-              "
+              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40"
             >
               Back
             </button>
@@ -208,13 +203,7 @@ export default function CreateProject({ onBack }) {
               <button
                 onClick={handleNext}
                 disabled={!isCurrentStepValid()}
-                className="
-                  px-6 py-2 rounded-lg
-                  bg-orange-500 text-white font-semibold
-                  hover:bg-orange-600
-                  shadow-md hover:shadow-lg
-                  disabled:opacity-40
-                "
+                className="px-6 py-2 rounded-lg bg-orange-500 text-white font-semibold hover:bg-orange-600 disabled:opacity-40"
               >
                 Next
               </button>
@@ -227,13 +216,7 @@ export default function CreateProject({ onBack }) {
                     (key) => formData[key].trim() !== ""
                   )
                 }
-                className="
-                  px-6 py-2 rounded-lg
-                  bg-green-500 text-white font-semibold
-                  hover:bg-green-600
-                  shadow-md hover:shadow-lg
-                  disabled:opacity-40
-                "
+                className="px-6 py-2 rounded-lg bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-40"
               >
                 {submitting ? "Submitting..." : "Finish"}
               </button>
@@ -247,10 +230,11 @@ export default function CreateProject({ onBack }) {
         open={showModal}
         loading={aiLoading}
         aiOutput={aiResult}
+        projectName={formData.projectName}
         onReject={() => setShowModal(false)}
         onClose={() => {
           setShowModal(false);
-          onBack();
+          setView("dashboard"); // ✅ GO TO DASHBOARD
         }}
       />
     </div>
@@ -267,12 +251,7 @@ function Input({ label, value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={label}
-        className="
-          px-4 py-2 rounded-lg
-          border border-gray-300
-          focus:outline-none
-          focus:ring-2 focus:ring-orange-400
-        "
+        className="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
       />
     </div>
   );
@@ -287,12 +266,7 @@ function Textarea({ label, value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={label}
-        className="
-          px-4 py-2 rounded-lg resize-none
-          border border-gray-300
-          focus:outline-none
-          focus:ring-2 focus:ring-orange-400
-        "
+        className="px-4 py-2 rounded-lg resize-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
       />
     </div>
   );
