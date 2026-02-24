@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import TaskPanel from "../components/TaskPanel";
 import AIReportsPanel from "../components/AIReportsPanel";
-import MembersPanel from "../components/MembersPanel";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: "◈" },
   { key: "tasks",    label: "Tasks",    icon: "⟳" },
-  { key: "members",  label: "Members",  icon: "◉" },
   { key: "reports",  label: "AI Reports", icon: "◎" },
   { key: "results",  label: "Results",   icon: "◈" },
 ];
@@ -91,7 +89,6 @@ export default function ProjectDashboard() {
       <main className="flex-1 overflow-y-auto px-8 py-8">
         {activeTab === "overview" && <OverviewPanel projectName={projectName} />}
         {activeTab === "tasks"    && <TaskPanel projectName={projectName} initialTasks={initialTasks} />}
-        {activeTab === "members"  && <MembersPanel />}
         {activeTab === "reports"    && <AIReportsPanel />}
         {activeTab === "results"  && <ResultsPanel />}
       </main>
